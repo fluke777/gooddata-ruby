@@ -14,7 +14,7 @@ module GoodData
     end
 
     def execute
-      puts "Executing report #{uri}"
+      # puts "Executing report #{uri}"
       result = GoodData.post '/gdc/xtab2/executor3', {"report_req" => {"report" => uri}}
       dataResultUri = result["reportResult2"]["content"]["dataResult"]
 

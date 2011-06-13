@@ -39,6 +39,10 @@ module GoodData
       GoodData.delete @json['links']['self']
     end
 
+    def id
+      uri.split('/').last
+    end
+
     def uri
       meta['uri']
     end
@@ -49,6 +53,10 @@ module GoodData
 
     def title
       meta['title']
+    end
+
+    def summary
+      meta['summary']
     end
 
     def meta
