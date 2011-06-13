@@ -40,7 +40,13 @@ module GoodData
     end
 
     def print
-      puts `echo \"#{to_table.to_s(:write_headers => false)}\" | column -s, -t`
+      a = to_table.to_a
+      a.transpose.unshift((1..a.length).to_a).each_with_index.map{|col, i|
+        col.unshift(i.zero?? nil : i)   # inserts row labels #
+        w = col.map{|cell| cell.to_s.length}.max   # w = "column width" #
+        col.each_with_index.map{|cell, i|
+          i.zero?? cell.to_s.center(w) : cell.to_s.ljust(w)}   # alligns the column #
+      }.transpose.each{|row| puts "[#{row.join(' | ')}]"}
     end
 
     def to_table
