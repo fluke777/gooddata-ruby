@@ -88,22 +88,22 @@ module GoodData
       len =  @table.length
       other_table = otherDataResult.to_table
       if len != other_table.length
-        puts "TABLES ARE OF DIFFERENT SIZES"
+        # puts "TABLES ARE OF DIFFERENT SIZES"
         return false
       end
       
-      @table.each do |row|
-        local_result = true
-        local_result = false unless other_table.detect {|r| r == row}
-        unless local_result
-          puts "Problem with line #{row}".colorize( :red )
-          
-          result = false
-        end
-        
-      end
+      diff(otherDataResult).empty?() ? true : false
       
-      result
+    end
+
+    def diff(otherDataResult)
+      other_table = otherDataResult.to_table
+      differences = []
+      
+      @table.each do |row|
+        differences << row unless other_table.detect {|r| r == row}
+      end
+      differences
     end
 
   end
@@ -143,10 +143,19 @@ module GoodData
       len =  csv_table.length
       return false if len != otherDataResult.to_table.length
       
-      csv_table.each do |row|
-        result = false unless otherDataResult.to_table.detect() {|r| r == row}
-      end
+      
       result
+    end
+
+    def diff(otherDataResult)
+      csv_table = to_table
+      other_table = otherDataResult.to_table
+      differences = []
+      
+      csv_table.each do |row|
+        differences << row unless other_table.detect {|r| r == row}
+      end
+      differences
     end
 
     private
