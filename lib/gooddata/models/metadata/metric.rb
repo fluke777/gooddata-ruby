@@ -9,8 +9,6 @@ module GoodData
   class Metric < MdObject
     root_key :metric
 
-    PARSE_MAQL_OBJECT_REGEXP = /\[([^\]]+)\]/
-
     class << self
       # Method intended to get all objects of that type in a specified project
       #
@@ -181,17 +179,7 @@ module GoodData
     # Looks up the readable values of the objects used inside of MAQL epxpressions. Labels and elements titles are based on the primary label.
     # @return [String] Ther resulting MAQL like expression
     def pretty_expression
-      temp = expression.dup
-      expression.scan(PARSE_MAQL_OBJECT_REGEXP).each do |uri|
-        uri = uri.first
-        if uri =~ /elements/
-          temp.sub!(uri, Attribute.find_element_value(uri))
-        else
-          obj = GoodData::MdObject[uri]
-          temp.sub!(uri, obj.title)
-        end
-      end
-      temp
+      SmallGoodZilla.pretty_print(expression)
     end
   end
 end

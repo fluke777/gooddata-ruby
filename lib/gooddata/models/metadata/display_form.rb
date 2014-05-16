@@ -15,7 +15,7 @@ module GoodData
       results = GoodData.post("#{uri}/validElements?limit=30&offset=0&order=asc&filter=#{value}", {})
       items = results['validElements']['items']
       if items.empty?
-        fail "#{value} not found"
+        fail "Element value \"#{value}\" not found in values of label \"#{uri}\""
       else
         items.first['element']['uri']
       end

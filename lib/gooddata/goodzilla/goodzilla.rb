@@ -2,6 +2,8 @@
 
 module GoodData
   module SmallGoodZilla
+    PARSE_MAQL_OBJECT_REGEXP = /\[([^\]]+)\]/
+
     # Get IDs from MAQL string
     # @param a_maql_string Input MAQL string
     # @return [Array<String>] List of IDS
@@ -28,6 +30,23 @@ module GoodData
     # @return [Array<String>] List of Metrics
     def self.get_metrics(a_maql_string)
       a_maql_string.scan(/\?"([^\"]+)\"/).flatten
+    end
+
+    # Pretty prints the MAQL expression. This basically means it finds out names of objects and elements and print their values instead of URIs
+    # @param expression [String] Expression to be beautified
+    # @return [String] Pretty printed MAQL expression
+    def self.pretty_print(expression)
+      temp = expression.dup
+      expression.scan(PARSE_MAQL_OBJECT_REGEXP).each do |uri|
+        uri = uri.first
+        if uri =~ /elements/
+          temp.sub!(uri, Attribute.find_element_value(uri))
+        else
+          obj = GoodData::MdObject[uri]
+          temp.sub!(uri, obj.title)
+        end
+      end
+      temp
     end
 
     def self.interpolate(values, dictionaries)
