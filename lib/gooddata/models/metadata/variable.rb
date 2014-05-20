@@ -1,7 +1,6 @@
 # encoding: UTF-8
 
 require_relative 'metadata'
-require 'pmap'
 
 module GoodData
   class UserFilter
@@ -76,12 +75,26 @@ module GoodData
 
       def all(options={})
         vars = GoodData.get(GoodData.project.md['query'] + '/userfilters/')['query']['entries']
+
+        count = 10000
+        offset = 0
+        user_lookup = {}
+        loop do
+          result = GoodData.get("/gdc/md/#{GoodData.project.pid}/userfilters?count=1000&offset=#{offset}")
+          result["userFilters"]["items"].each { |item| user_lookup[item["userFilters"].first] = item["user"] }
+          break if result["userFilters"]["length"] < offset
+          offset += count
+        end
+
         vars.map do |a|
-          data = GoodData.get(a['link'])
+          uri = a['link']
+          data = GoodData.get(uri)
           GoodData::UserFilter.new(
             "expression" => data['userFilter']['content']['expression'],
-            "level"=> :user,
-            "type" => :filter
+            "related" => user_lookup[a['link']],
+            "level" => :user,
+            "type"  => :filter,
+            "uri"   => a['link']
           )
         end
       end
@@ -211,7 +224,8 @@ module GoodData
     end
 
     def self.maqlify_filters(result, options = {})
-      only_existing_users = options[:only_existing_users] || true
+
+      only_existing_users = options[:only_existing_users] == false ? false : true
 
       users_lookup = GoodData.project.users.reduce({}) do |a, e|
         a[e.login] = e
@@ -247,16 +261,20 @@ module GoodData
       end
     end
 
-    def self.resolve_variable_user_fiters(user_filters, var)
-      vals = var.user_values
+    def self.resolve_variable_user_fiters(user_filters, vals)
       project_vals_lookup = vals.reduce({}) do |a, e|
         a[e.related_uri] = e
         a
       end
 
+      user_vals_lookup = user_filters.reduce({}) do |a, e|
+        a[e.related_uri] = e
+        a
+      end
+
       to_update = []
-      to_delete = []
       to_create = []
+
       user_filters.each do |val|
         user_uri = val.related_uri
         if project_vals_lookup.key?(user_uri)
@@ -269,13 +287,22 @@ module GoodData
           to_create << val
         end
       end
+
+      to_delete = vals.reduce([]) do |a, e|
+        user_uri = e.related_uri
+        unless user_vals_lookup.key?(user_uri)
+          a << e
+        end
+        a
+      end
+
       [to_create, to_delete, to_update]
     end
 
     def self.execute_variables(filters, var, options = {})
       dry_run = options[:dry_run]
       user_filters = maqlify_filters(filters, :only_existing_users => true)
-      to_create, to_delete, to_update = resolve_variable_user_fiters(user_filters, var)
+      to_create, to_delete, to_update = resolve_variable_user_fiters(user_filters, var.user_values)
 
       return [to_create, to_delete, to_update] if dry_run
 
@@ -291,37 +318,82 @@ module GoodData
       [to_create, to_delete, to_update]
     end
 
-    def self.resolve_mandatory_user_fiters(filters)
-      
-    end
+    def self.execute_mufs(filters, options={})
+      dry_run = options[:dry_run]
 
-    def self.execute_mufs(filters, name)
       user_filters = maqlify_filters(filters, :only_existing_users => false)
-      to_create, to_delete, to_update = resolve_mandatory_user_fiters(user_filters)
-      # binding.pry
-    end
+      to_create, to_delete, to_update = resolve_variable_user_fiters(user_filters, MandatoryUserFilter.all)
 
-    # - filters resolve
-    # - if unable to resolve fail
-    # - if able to resolve move on
-    # - find those that are new or in need of update
-    # - optional reset those not mentioned 
-    # - update
+      return [to_create, to_delete, to_update] if dry_run
+      to_create.each do |var|
+        result = GoodData.post("/gdc/md/#{GoodData.project.pid}/obj", {
+            "userFilter" => {
+                "content" => {
+                    "expression" => var.expression
+                },
+                "meta" => {
+                    "category" => "userFilter",
+                    "title" => var.expression
+                }
+            }
+        })
+      
+        GoodData.post("/gdc/md/#{GoodData.project.pid}/userfilters", { 
+          "userFilters" => {
+                "items" => [
+                    {
+                        "user" => var.related_uri,
+                        "userFilters" => [
+                            uri = result["uri"]
+                        ]
+                    }
+                ]
+            }
+        })
+      end
+      to_delete.each { |filter| filter.delete }
+      to_update.each do |filter|
+        GoodData.post(filter.uri, {
+            "userFilter" => {
+                "content" => {
+                    "expression" => filter.expression
+                },
+                "meta" => {
+                    "category" => "userFilter",
+                    "title" => filter.expression
+                }
+            }
+        })
+      end
+      [to_create, to_delete, to_update]
+    end
   end
 end
 
 def example
-  GoodData.logging_on
   var = GoodData::Variable.all[1]
-  x = "login,division,age\nsvarovsky@gooddata.com,hr,14\nsvarovsky@gooddata.com,\"rnd, eng\",19\n"
+  x = "login,division,age\nsvarovsky@gooddata.com,hr,14\nsvarovsky@gooddata.com,\"Tomas\",19\n"
   filters = GoodData::UserFilterBuilder::get_filters(x, {
     :type => :filter,
     :labels => [
-      {:label => {:uri => "/gdc/md/j5wt8v2tl077r21r568l19vx16pq2qal/obj/25"}, :column => 'division'}
+      {:label => {:uri => "/gdc/md/iieuwdwmr88p6f3zgphze2kpnlfswotr/obj/210"}, :column => 'division'}
     ]
   })
-  binding.pry
-  GoodData::UserFilterBuilder.execute_mufs(filters, "some var")
+  GoodData::UserFilterBuilder.execute_variables(filters, var)
+end
+
+def muf_example
+  GoodData.logging_on
+  x = "login,division,age\nsvarovsky@gooddata.com,\"Tomas\",20\n"
+  # x = "login,division,age\nsvarovsky@gooddata.com,\"Petr\",20\n"
+  # x = "login,division,age\n"
+  filters = GoodData::UserFilterBuilder::get_filters(x, {
+    :type => :filter,
+    :labels => [
+      {:label => {:uri => "/gdc/md/iieuwdwmr88p6f3zgphze2kpnlfswotr/obj/210"}, :column => 'division'}
+    ]
+  })
+  GoodData::UserFilterBuilder.execute_mufs(filters)
 end
 
 class Hash
