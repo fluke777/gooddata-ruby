@@ -301,6 +301,7 @@ module GoodData
 
     def self.execute_variables(filters, var, options = {})
       dry_run = options[:dry_run]
+      filters = normalize_filters(filters)
       user_filters = maqlify_filters(filters, :only_existing_users => true)
       to_create, to_delete, to_update = resolve_variable_user_fiters(user_filters, var.user_values)
 
@@ -318,9 +319,29 @@ module GoodData
       [to_create, to_delete, to_update]
     end
 
+    def self.normalize_filters(filters)
+      filters.map do |filter|
+        if filter.is_a?(Hash)
+          filter
+        else
+          {
+            :login => filter.first,
+            :filters => [
+              {
+                :label => {
+                  :uri => filter[1]
+                },
+                :values => filter[2..-1]
+              }
+            ]
+          }
+        end
+      end
+    end
+
     def self.execute_mufs(filters, options={})
       dry_run = options[:dry_run]
-
+      filters = normalize_filters(filters)
       user_filters = maqlify_filters(filters, :only_existing_users => false)
       to_create, to_delete, to_update = resolve_variable_user_fiters(user_filters, MandatoryUserFilter.all)
 
@@ -376,7 +397,7 @@ def example
   filters = GoodData::UserFilterBuilder::get_filters(x, {
     :type => :filter,
     :labels => [
-      {:label => {:uri => "/gdc/md/iieuwdwmr88p6f3zgphze2kpnlfswotr/obj/210"}, :column => 'division'}
+      {:label => {:uri => "/gdc/md/om15m97we27svj0t6csvaggwlnn8qwwj/obj/210"}, :column => 'division'}
     ]
   })
   GoodData::UserFilterBuilder.execute_variables(filters, var)
@@ -384,16 +405,23 @@ end
 
 def muf_example
   GoodData.logging_on
-  x = "login,division,age\nsvarovsky@gooddata.com,\"Tomas\",20\n"
-  # x = "login,division,age\nsvarovsky@gooddata.com,\"Petr\",20\n"
+  # x = "login,division,age\nsvarovsky@gooddata.com,\"1\",20\n"
+  # x = "login,division,age\nsvarovsky@gooddata.com,\"2\",20\n"
   # x = "login,division,age\n"
-  filters = GoodData::UserFilterBuilder::get_filters(x, {
-    :type => :filter,
-    :labels => [
-      {:label => {:uri => "/gdc/md/iieuwdwmr88p6f3zgphze2kpnlfswotr/obj/210"}, :column => 'division'}
-    ]
-  })
-  GoodData::UserFilterBuilder.execute_mufs(filters)
+  # filters = GoodData::UserFilterBuilder::get_filters(x, {
+  #   :type => :filter,
+  #   :labels => [
+  #     {:label => {:uri => "/gdc/md/om15m97we27svj0t6csvaggwlnn8qwwj/obj/199"}, :column => 'division'}
+  #   ]
+  # })
+  # GoodData::UserFilterBuilder.execute_mufs(filters, :dry_run => true)
+  
+  l = GoodData::Attribute[198].labels[1]
+  filters = [
+    ["svarovsky@gooddata.com", l.uri, "1", "3"]
+  ]
+  GoodData::UserFilterBuilder.execute_mufs(filters, :dry_run => true)
+  
 end
 
 class Hash
