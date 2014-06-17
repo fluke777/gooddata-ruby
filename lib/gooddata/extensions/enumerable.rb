@@ -1,7 +1,9 @@
 module Enumerable
   def mapcat(initial = [], &block)
     reduce(initial) do |a, e|
-      a.concat(block.call(e))
+      block.call(e).each do |x|
+        a << x
+      end
       a
     end
   end
