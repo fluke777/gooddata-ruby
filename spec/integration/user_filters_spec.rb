@@ -5,7 +5,6 @@ describe "User filters implementation", :constraint => 'slow' do
     @spec = JSON.parse(File.read("./spec/data/test_project_model_spec.json"), :symbolize_names => true)
     ConnectionHelper::create_default_connection
     @project = GoodData::Model::ProjectCreator.migrate({:spec => @spec, :token => ConnectionHelper::GD_PROJECT_TOKEN})
-    GoodData.logging_on
     GoodData.with_project(@project) do |p|
       @label = GoodData::Attribute.find_first_by_title('Dev').label_by_name('email')
       
@@ -41,15 +40,13 @@ describe "User filters implementation", :constraint => 'slow' do
 
       metric.execute.should == 9
       GoodData::UserFilterBuilder.execute_mufs(filters)
-      metric.execute.should == 1
+      metric.execute.should == 6
       r = GoodData::ReportDefinition.execute :left => [metric], :top => [@label.attribute]
       r.include_column?(['tomas@gooddata.com', 1]).should == true
 
-      filters = [[ConnectionHelper::DEFAULT_USERNAME, @label.uri, "petr@gooddata.com"]]
-      GoodData::UserFilterBuilder.execute_mufs(filters)
-
-      r.include_column?(['tomas@gooddata.com', 1]).should == false
-      r.include_column?(['petr@gooddata.com', 3]).should == true
+      r.include_column?(['tomas@gooddata.com', 1]).should == true
+      r.include_column?(['jirka@gooddata.com', 5]).should == true
+      r.include_column?(['petr@gooddata.com', 3]).should == false
 
       GoodData::MandatoryUserFilter.all.each { |f| f.delete }
     end

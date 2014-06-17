@@ -6,7 +6,7 @@ def check_filters(filters)
   filter[:login].should == "john.doe@example.com"
   filter[:filters].count.should == 1
   filter[:filters].first[:values].count.should == 4
-  
+  filter[:filters].first[:values].should == ["USA", "Czech Republic", "Uganda", "Slovakia"]
   filter = filters.last
   filter[:login].should == "jane.doe@example.com"
   filter[:filters].count.should == 1
@@ -18,7 +18,7 @@ describe 'User filters implementation' do
   it "should create user filters from a file using row based approach" do
     filters = GoodData::UserFilterBuilder::get_filters('./spec/data/line_based_permissions.csv', {
         :labels => [
-          {:label => {:uri => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2719"}},
+          {:label => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2719"},
         ]
       });
     check_filters(filters)
@@ -27,7 +27,7 @@ describe 'User filters implementation' do
   it "should create user filters from a file using column based approach" do
     filters = GoodData::UserFilterBuilder::get_filters('./spec/data/column_based_permissions.csv', {
         :labels => [
-          {:label => {:uri => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2719"}, :column => 'region'},
+          {:label => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2719", :column => 'region'},
         ]
       });
     check_filters(filters)
@@ -40,7 +40,7 @@ describe 'User filters implementation' do
           {:label => "other_label", :column => 'department'}
         ]
       });
-    filters.first[:filters].last[:values].count.should == 2
+    filters.first[:filters].last[:values].count.should == 3
   end
 
   it "should be able to specify columns by number" do

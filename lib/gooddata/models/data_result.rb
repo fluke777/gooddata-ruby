@@ -1,7 +1,5 @@
 # encoding: UTF-8
 
-require_relative '../extensions/big_decimal'
-
 module GoodData
   class DataResult
     attr_reader :data

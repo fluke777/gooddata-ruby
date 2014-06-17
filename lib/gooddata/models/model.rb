@@ -13,6 +13,7 @@ require_relative 'references/references'
 require_relative 'links'
 require_relative 'module_constants'
 require_relative 'metadata/schema'
+require_relative 'user_filters/user_filters'
 
 require 'fileutils'
 require 'multi_json'

@@ -1,5 +1,7 @@
 module GoodData
 
+require_relative 'user_filter'
+
   class MandatoryUserFilter < UserFilter
     class << self
       def [](id, options = {})

@@ -66,7 +66,6 @@ describe GoodData::Model::ProjectBlueprint do
       d.add_attribute("id", :title => "My Id")
       d.add_fact("amount", :title => "Amount")
     end
-
     bp1 = GoodData::Model::ProjectBlueprint.new(builder)
     bp1.valid?.should == true
 
