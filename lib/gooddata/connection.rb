@@ -22,8 +22,7 @@ module GoodData
     def connect(options = nil, second_options = nil, third_options = {})
       GoodData.logger.debug 'GoodData#connect'
       threaded[:connection] = if options.is_a? Hash
-                                fail 'You have to provide login and password' if (options[:login].nil? || options[:login].empty?) && (options[:password].nil? || options[:password].empty?)
-                                Connection.new(options[:login], options[:password], options)
+                                # fail 'You have to provide login and password' if (options[:login].nil? || options[:login].empty?) && (options[:password].nil? || options[:password].empty?)
                                 conn = Connection.new(options[:login], options[:password], options)
                                 GoodData.project = options[:project] if options[:project]
                                 conn

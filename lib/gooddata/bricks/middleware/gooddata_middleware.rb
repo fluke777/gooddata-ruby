@@ -19,12 +19,11 @@ module GoodData
                    "#{params[protocol_name]}://#{params[server_name]}"
                  end
 
-        fail 'GoodData username is missing. Expected param :GDC_USERNAME' if params['GDC_USERNAME'].nil?
-        fail 'GoodData password is missing. Expected param :GDC_PASSWORD' if params['GDC_PASSWORD'].nil?
-
-        GoodData.connect(params['GDC_USERNAME'], params['GDC_PASSWORD'], :server => server)
+        GoodData.connect_with_sst(params[token_name], :server => server)
+        # GoodData.connect(params['GDC_USERNAME'], params['GDC_PASSWORD'], :server => server)
         GoodData.logger = logger
         GoodData.with_project(project_id) do |p|
+          params['gdc_project'] = p
           @app.call(params)
         end
       end

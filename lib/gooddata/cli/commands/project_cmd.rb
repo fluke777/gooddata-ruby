@@ -161,7 +161,6 @@ GoodData::CLI.module_eval do
         opts = options.merge(global_options)
         GoodData.connect(opts)
         spec, _ = GoodData::Command::Project.get_spec_and_project_id('.')
-        binding.pry
         new_project = GoodData::Command::Project.build(opts.merge(:spec => spec))
         puts "Project was created. New project PID is #{new_project.pid}, URI is #{new_project.uri}."
       end
