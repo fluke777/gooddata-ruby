@@ -610,12 +610,12 @@ module GoodData
             :users => GoodData::Domain[domain_name].users
           }
 
-          domain[:users_map] = Hash[domain[:users].map { |u| [u.email, u] }]
+          domain[:users_map] = Hash[domain[:users].map { |u| [u.login, u] }]
           domains[domain_name] = domain
         end
 
         # Check if user exists in domain
-        domain_user = domain[:users_map][user.email]
+        domain_user = domain[:users_map][user.login]
         fail ArgumentError, "Trying to add user '#{user.login}' which is not valid user in domain '#{domain_name}'" if domain_user.nil?
 
         # Lookup for role
@@ -640,13 +640,20 @@ module GoodData
     #
     # @param path CSV file to be loaded
     # @param opts Optional additional options
-    def users_import(new_users, domain = nil)
+    def users_import(new_users, options = {})
+      domain = options[:domain]
+      whitelist = options[:whitelists] || []
+
+      # whitelist_users
+      whitelisted_users = users.reject do |user|
+        whitelist.any? { |wl| user.login.include?(wl) }
+      end
+
       # Diff users
-      diff = GoodData::Membership.diff_list(users, new_users)
+      diff = GoodData::Membership.diff_list(whitelisted_users, new_users)
 
       # Create domain users
       GoodData::Domain.users_create(diff[:added], domain)
-
       # Create new users
       role_list = roles
       users_create(diff[:added], role_list)
@@ -659,13 +666,13 @@ module GoodData
       # Join list of changed users with 'same' users
       list = list.zip(diff[:same]).flatten.compact
 
-      new_users_map = Hash[new_users.map { |u| [u.email, u] }]
+      new_users_map = Hash[new_users.map { |u| [u.login, u] }]
 
       # Create list with user, desired_roles hashes
       list = list.map do |user|
         {
           :user => user,
-          :roles => new_users_map[user.email].json['user']['content']['role'].split(' ').map { |r| r.downcase }.sort
+          :roles => new_users_map[user.login].json['user']['content']['role'].split(' ').map { |r| r.downcase }.sort
         }
       end
 

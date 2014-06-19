@@ -147,7 +147,7 @@ module GoodData
           end
 
           # Check if user exists in domain
-          domain_user = domain[:users_map][user.email]
+          domain_user = domain[:users_map][user.login]
 
           # Create domain user if needed
           unless domain_user
