@@ -7,4 +7,12 @@ module Enumerable
       a
     end
   end
+
+  def rjust(n, x)
+    Array.new([0, n-length].max, x) + self
+  end
+
+  def ljust(n, x)
+    dup.fill(x, length...n)
+  end
 end
