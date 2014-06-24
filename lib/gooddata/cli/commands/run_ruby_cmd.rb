@@ -23,7 +23,7 @@ GoodData::CLI.module_eval do
 
     c.desc 'Params file path. Inside should be hash of key values'
     c.default_value nil
-    c.flag [:params]
+    c.flag [:params, :paramfile]
 
     c.desc 'Run on remote machine'
     c.switch [:r, :remote]
@@ -34,12 +34,11 @@ GoodData::CLI.module_eval do
 
     c.action do |global_options, options, args|
       verbose = global_options[:verbose]
-      options[:expanded_params] = if options[:params]
-                                    MultiJson.load(File.read(options[:params]))
+      options[:params] = if options[:paramfile]
+                                    MultiJson.load(File.read(options[:paramfile]))
                                   else
                                     {}
                                   end
-
       opts = options.merge(global_options).merge(:type => 'RUBY')
       GoodData.connect(opts)
       if options[:remote]

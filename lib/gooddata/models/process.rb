@@ -28,16 +28,16 @@ module GoodData
       def with_deploy(dir, options = {}, &block)
         # verbose = options[:verbose] || false
         GoodData.with_project(options[:project_id]) do |project|
-          params = options[:params].nil? ? [] : [options[:params]]
+          param_file = options[:paramfile].nil? ? [] : [options[:paramfile]]
           if block
             begin
-              res = GoodData::Process.deploy(dir, options.merge(:files_to_exclude => params))
+              res = GoodData::Process.deploy(dir, options.merge(:files_to_exclude => param_file))
               block.call(res)
             ensure
               res.delete if res
             end
           else
-            GoodData::Process.deploy(dir, options.merge(:files_to_exclude => params))
+            GoodData::Process.deploy(dir, options.merge(:files_to_exclude => param_file))
           end
         end
       end
@@ -161,12 +161,14 @@ module GoodData
 
     def execute(executable, options = {})
       params = options[:params] || {}
-      hidden_params = options[:hidden_params] || {}
+      hidden_params = {'params' => MultiJson.encode(options[:hidden_params] || {})}
+      params = {'params' => MultiJson.encode(options[:params] || {})}
+
       result = GoodData.post(executions_link,
                              :execution => {
                                :graph => executable.to_s,
-                               :params => params,
-                               :hiddenParams => hidden_params
+                               :params => params
+                               # :hiddenParams => hidden_params
                              })
       begin
         GoodData.poll(result, 'executionTask')

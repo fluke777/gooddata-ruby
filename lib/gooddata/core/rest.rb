@@ -95,6 +95,11 @@ module GoodData
       connection.download(file, where, options.merge(:staging_url => url))
     end
 
+    def download_from_project_webdav(file, where, options = {})
+      url = get_project_webdav_path(file, options)
+      connection.download(file, where, options.merge(:staging_url => url))
+    end
+
     def poll(result, key, options = {})
       sleep_interval = options[:sleep_interval] || 10
       link = result[key]['links']['poll']
