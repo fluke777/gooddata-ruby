@@ -62,7 +62,7 @@ GoodData::CLI.module_eval do
         fail 'You have to provide a directory or a file to deploy. Use --dir param' if dir.nil? || dir.empty?
         fail 'You have to provide a name of the deployed process.  Use --name param' if name.nil? || name.empty?
         GoodData.connect(opts)
-        pp GoodData::Command::Process.deploy(dir, options.merge(global_options))
+        pp GoodData::Command::Process.deploy(dir, opts)
       end
     end
 

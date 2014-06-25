@@ -52,5 +52,4 @@ GoodData::CLI.module_eval do
       puts HighLine.color('Running ruby brick - DONE', HighLine::GREEN) if verbose
     end
   end
-
 end

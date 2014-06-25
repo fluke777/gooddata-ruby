@@ -24,7 +24,6 @@ module GoodData
         Process[:all]
       end
 
-      # TODO: Check the params.
       def with_deploy(dir, options = {}, &block)
         # verbose = options[:verbose] || false
         GoodData.with_project(options[:project_id]) do |project|
@@ -161,8 +160,15 @@ module GoodData
 
     def execute(executable, options = {})
       params = options[:params] || {}
-      hidden_params = {'params' => MultiJson.encode(options[:hidden_params] || {})}
-      params = {'params' => MultiJson.encode(options[:params] || {})}
+      hidden_params = options[:hidden_params] || {}
+
+      if type == :graph
+        res = params.keys.any? {|key| params[key].is_a?(Hash) || params[key].is_a?(Array)}
+        fail "CloudConnect process does not support any nested sctrucutres." if res
+      else
+        params = {:params => MultiJson.encode(options[:params] || {})}
+        hidden_params = {:hidden_params => MultiJson.encode(options[:hidden_params] || {})}
+      end
 
       result = GoodData.post(executions_link,
                              :execution => {
