@@ -125,7 +125,8 @@ module GoodData
       # @param [Array<GoodData::Membership>] list List of users
       # @param [String] default_domain_name Default domain name used when no specified in user
       # @return [Array<GoodData::User>] List of users created
-      def users_create(list, default_domain = nil)
+      def users_create(list, default_domain = nil, options = {})
+        ignore_failures = options[:ignore_failures]
         default_domain_name = default_domain.respond_to?(:name) ? default_domain.name : default_domain
         domains = {}
         list.map do |user|
@@ -170,9 +171,18 @@ module GoodData
             user_data[:authentication_modes] = tmp && !tmp.empty?
 
             # Add created user to cache
-            domain_user = domain[:domain].add_user(user_data)
-            domain[:users] << domain_user
-            domain[:users_map][user.email] = domain_user
+            begin
+              domain_user = domain[:domain].add_user(user_data)
+              domain[:users] << domain_user
+              domain[:users_map][user.email] = domain_user
+              res << domain_user
+            rescue RestClient::BadRequest => e
+              if ignore_failures
+                GoodData.logger.debug "User #{user_data} was not added. Most probable cause is that it is already added"
+              else
+                raise e
+              end
+            end
           end
           domain_user
         end
@@ -225,8 +235,8 @@ module GoodData
       GoodData::Domain.users(name, opts)
     end
 
-    def users_create(list)
-      GoodData::Domain.users_create(list, name)
+    def users_create(list, options = {})
+      GoodData::Domain.users_create(list, name, options)
     end
 
     private
