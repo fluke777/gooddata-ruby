@@ -7,6 +7,62 @@ module GoodData
   module Helpers
     class << self
 
+      def diff(old_list, new_list, options = {})
+        fields = options[:fields]
+        lookup_key = options[:key]
+
+        old_lookup = Hash[old_list.map { |v| [v[lookup_key], v] }]
+
+        res = {
+          :added => [],
+          :removed => [],
+          :changed => [],
+          :same => []
+        }
+
+        new_list.each do |new_obj|
+          old_obj = old_lookup[new_obj[lookup_key]]
+          if old_obj.nil?
+            res[:added] << new_obj
+            next
+          end
+
+          if fields
+            sliced_old_obj = old_obj.slice(*fields)
+            sliced_new_obj = new_obj.slice(*fields)
+          else
+            sliced_old_obj = old_obj
+            sliced_new_obj = new_obj
+          end
+          if sliced_old_obj != sliced_new_obj
+
+            if (sliced_old_obj.size > sliced_new_obj.size)
+              difference = sliced_old_obj.to_a - sliced_new_obj.to_a
+            else
+              difference = sliced_new_obj.to_a - sliced_old_obj.to_a
+            end
+            res[:changed] << {
+              obj_old: old_obj,
+              new_obj: new_obj,
+              diff: Hash[*difference.flatten]
+            }
+          else
+            res[:same] << old_obj
+          end
+        end
+
+        new_lookup = Hash[new_list.map { |v| [v[lookup_key], v] }]
+        old_list.each do |old_obj|
+          new_obj = new_lookup[old_obj[lookup_key]]
+          if new_obj.nil?
+            res[:removed] << old_obj
+            next
+          end
+        end
+
+        res
+      end
+
       def create_lookup(collection, on)
         lookup = {}
         if on.is_a?(Array)
