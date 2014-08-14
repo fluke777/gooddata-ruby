@@ -35,16 +35,12 @@ module GoodData
             sliced_new_obj = new_obj
           end
           if sliced_old_obj != sliced_new_obj
-
-            if (sliced_old_obj.size > sliced_new_obj.size)
-              difference = sliced_old_obj.to_a - sliced_new_obj.to_a
-            else
-              difference = sliced_new_obj.to_a - sliced_old_obj.to_a
-            end
+            difference = sliced_new_obj.to_a - sliced_old_obj.to_a
+            differences = Hash[*difference.mapcat {|x| x}]
             res[:changed] << {
               obj_old: old_obj,
               new_obj: new_obj,
-              diff: Hash[*difference.flatten]
+              diff: differences
             }
           else
             res[:same] << old_obj

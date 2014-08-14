@@ -79,10 +79,27 @@ describe GoodData::Domain do
       res = GoodData::Domain.users_create(list, ConnectionHelper::DEFAULT_DOMAIN)
 
       expect(res).to be_an_instance_of(Array)
-      res.each do |r|
+
+      # no errors
+      expect(res.select { |x| x[:type] == :user_added_to_domain }.count).to eq res.count
+
+      res.map { |r| r[:user] }.each do |r|
         expect(r).to be_an_instance_of(GoodData::Profile)
         r.delete
       end
+    end
+  end
+
+  describe '#users_create' do
+    it 'Update a users from list' do
+
+      domain = GoodData::Domain[ConnectionHelper::DEFAULT_DOMAIN]
+      user = domain.users.sample
+      login = user.login
+      user.first_name = user.first_name.reverse
+      GoodData::Domain.users_create([user.to_hash], ConnectionHelper::DEFAULT_DOMAIN)
+      changed_user = domain.users.find { |user| user.login == login }
+      expect(changed_user.first_name).to eq user.first_name
     end
   end
 end

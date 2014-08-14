@@ -305,6 +305,8 @@ module GoodData
     end
 
     # Gets first role
+    #
+    # @return [GoodData::ProjectRole] Array of project roles
     def role
       roles.first
     end
@@ -363,7 +365,7 @@ module GoodData
     #
     # @return [String] Object URI
     def uri
-      @json['user']['links']['self']
+      links['self']
     end
 
     # Enables membership
@@ -378,6 +380,27 @@ module GoodData
     # @return result from post execution
     def disable
       self.status = 'disabled'
+    end
+
+    def data
+      data = @json || {}
+      data['user'] || {}
+    end
+
+    def meta
+      data['meta'] || {}
+    end
+
+    def links
+      data['links'] || {}
+    end
+
+    def content
+      data['content'] || {}
+    end
+
+    def to_hash
+      content.merge(meta).merge({'uri' => uri}).symbolize_keys
     end
 
     private

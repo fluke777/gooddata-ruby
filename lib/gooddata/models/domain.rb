@@ -1,6 +1,7 @@
 # encoding: UTF-8
 
 require_relative 'profile'
+require_relative '../extensions/enumerable'
 
 module GoodData
   class Domain
@@ -72,6 +73,7 @@ module GoodData
         data[:timezone] = tmp if tmp && !tmp.empty?
 
         # TODO: It will be nice if the API will return us user just newly created
+        
         url = "/gdc/account/domains/#{opts[:domain]}/users"
         response = GoodData.post(url, :accountSetting => data)
 
@@ -83,6 +85,70 @@ module GoodData
 
         GoodData::Profile.new(raw)
       end
+
+      def update_user(opts)
+        # generated_pass = rand(10E10).to_s
+        data = {
+          :firstName => opts[:firstName] || 'FirstName',
+          :lastName => opts[:lastName] || 'LastName',
+          :email => opts[:email]
+        }
+
+        # Optional authentication modes
+         tmp = opts[:authentication_modes]
+         if tmp
+           if tmp.kind_of? Array
+             data[:authenticationModes] = tmp
+           elsif tmp.kind_of? String
+             data[:authenticationModes] = [tmp]
+           end
+         end
+        
+         # Optional company
+         tmp = opts[:company_name]
+         tmp = opts[:company] if tmp.nil? || tmp.empty?
+         data[:companyName] = tmp if tmp && !tmp.empty?
+        
+         # Optional pass
+         tmp = opts[:password]
+         tmp = opts[:password] if tmp.nil? || tmp.empty?
+         data[:password] = tmp if tmp && !tmp.empty?
+         data[:verifyPassword] = tmp if tmp && !tmp.empty?
+        
+         # Optional country
+         tmp = opts[:country]
+         data[:country] = tmp if tmp && !tmp.empty?
+        
+         # Optional phone number
+         tmp = opts[:phone]
+         tmp = opts[:phone_number] if tmp.nil? || tmp.empty?
+         data[:phoneNumber] = tmp if tmp && !tmp.empty?
+        
+         # Optional position
+         tmp = opts[:position]
+         data[:position] = tmp if tmp && !tmp.empty?
+        
+         # Optional sso provider
+         tmp = opts[:sso_provider]
+         data['ssoProvider'] = tmp if tmp && !tmp.empty?
+        
+         # Optional timezone
+         tmp = opts[:timezone]
+         data[:timezone] = tmp if tmp && !tmp.empty?
+ 
+        # TODO: It will be nice if the API will return us user just newly created
+        url = opts.delete(:uri)
+        if GoodData.profile.uri == url
+          data.delete(:password)
+        end
+        response = GoodData.put(url, :accountSetting => data)
+        
+        # TODO: Remove this hack when POST /gdc/account/domains/{domain-name}/users returns full profile
+        response['accountSetting']['links'] = {} unless response['accountSetting']['links']
+        response['accountSetting']['links']['self'] = url unless response['accountSetting']['links']['self']
+        GoodData::Profile.new(response)
+      end
+
 
       # Finds user in domain by login
       #
@@ -130,61 +196,46 @@ module GoodData
         default_domain_name = default_domain.respond_to?(:name) ? default_domain.name : default_domain
         domains = {}
         list.map do |user|
-          # TODO: Add user here
-          domain_name = user.json['user']['content']['domain'] || default_domain_name
+          begin
+            user_data = user.to_hash
+            # TODO: Add user here
+            domain_name = user_data[:domain] || default_domain_name
 
-          # Lookup for domain in cache'
-          domain = domains[domain_name]
+            # Lookup for domain in cache'
+            domain = domains[domain_name]
 
-          # Get domain info from REST, add to cache
-          if domain.nil?
-            domain = {
-              :domain => GoodData::Domain[domain_name],
-              :users => GoodData::Domain[domain_name].users
-            }
+            # Get domain info from REST, add to cache
+            if domain.nil?
+              domain = {
+                :domain => GoodData::Domain[domain_name],
+                :users => GoodData::Domain[domain_name].users
+              }
 
-            domain[:users_map] = Hash[domain[:users].map { |u| [u.email, u] }]
-            domains[domain_name] = domain
-          end
+              domain[:users_map] = Hash[domain[:users].map { |u| [u.login, u] }]
+              domains[domain_name] = domain
+            end
 
-          # Check if user exists in domain
-          domain_user = domain[:users_map][user.login]
+            # Check if user exists in domain
+            domain_user = domain[:users_map][user_data[:login]]
 
-          # Create domain user if needed
-          unless domain_user
-            password = user.json['user']['content']['password']
-
-            # Fill necessary user data
-            user_data = {
-              :login => user.login,
-              :firstName => user.first_name,
-              :lastName => user.last_name,
-              :password => password,
-              :verifyPassword => password,
-              :email => user.login
-            }
-
-            tmp = user.json['user']['content']['sso_provider']
-            user_data[:sso_provider] = tmp if tmp && !tmp.empty?
-
-            tmp = user.json['user']['content']['authentication_modes']
-            user_data[:authentication_modes] = tmp && !tmp.empty?
-
-            # Add created user to cache
-            begin
+            # Create domain user if needed
+            unless domain_user
+              # Add created user to cache
               domain_user = domain[:domain].add_user(user_data)
               domain[:users] << domain_user
-              domain[:users_map][user.email] = domain_user
-              res << domain_user
-            rescue RestClient::BadRequest => e
-              if ignore_failures
-                GoodData.logger.debug "User #{user_data} was not added. Most probable cause is that it is already added"
-              else
-                raise e
-              end
+              domain[:users_map][domain_user.login] = domain_user
+              { type: :user_added_to_domain, user: domain_user }
+            else
+              # fields = [:firstName, :email]
+              diff = GoodData::Helpers.diff([domain_user.to_hash], [user_data], key: :login)
+              next if[:changed].empty?
+              domain_user = domain[:domain].update_user(domain_user.to_hash.merge(user_data.compact))
+              domain[:users_map][domain_user.login] = domain_user            
+              { type: :user_changed_in_domain, user: domain_user }
             end
+          rescue RuntimeError => e
+            { type: :errors, reason: e}
           end
-          domain_user
         end
       end
     end
@@ -208,6 +259,16 @@ module GoodData
     def add_user(opts)
       opts[:domain] = name
       GoodData::Domain.add_user(opts)
+    end
+
+    # Update user in domain
+    #
+    # @param opts [Hash] Data of the user to be updated
+    # @return [Object] Raw response
+    #
+    #
+    def update_user(opts)
+      GoodData::Domain.update_user(opts)
     end
 
     # Finds user in domain by login

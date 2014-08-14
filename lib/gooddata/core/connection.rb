@@ -263,11 +263,12 @@ module GoodData
     def download(what, where, options = {})
       staging_uri = options[:staging_url].to_s
       url = staging_uri + what
-      req = RestClient::Request.new(
+      req = RestClient::Request.new({
         :method => 'GET',
         :url => url,
         :user => @username,
-        :password => @password)
+        :password => @password
+      }.merge(cookies))
 
       if where.is_a?(String)
         File.open(where, 'w') do |f|

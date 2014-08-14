@@ -380,5 +380,23 @@ module GoodData
     def uri
       @json['accountSetting']['links']['self']
     end
+
+    def data
+      data = @json || {}
+      data['accountSetting'] || {}
+    end
+
+    def links
+      data['links'] || {}
+    end
+
+    def content
+      keys = (data.keys - ['links'])
+      data.slice(*keys)
+    end
+
+    def to_hash
+      content.merge({'uri' => uri}).symbolize_keys
+    end
   end
 end

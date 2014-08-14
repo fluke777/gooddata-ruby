@@ -269,7 +269,7 @@ describe GoodData::Project do
       project.users_create(users)
 
       expect(res).to be_an_instance_of(Array)
-      res.each do |r|
+      res.map { |r| r[:user] }.each do |r|
         expect(r).to be_an_instance_of(GoodData::Profile)
         r.delete
       end
@@ -282,7 +282,6 @@ describe GoodData::Project do
       project = GoodData::Project[ProjectHelper::PROJECT_ID]
 
       new_users = load_users_from_csv
-
       project.users_import(new_users)
     end
   end
@@ -300,7 +299,6 @@ describe GoodData::Project do
       project = ProjectHelper.get_default_project
 
       list = load_users_from_csv
-
       # Create list with user, desired_roles hashes
       list = list.map do |user|
         {
@@ -312,7 +310,8 @@ describe GoodData::Project do
       # Get changed users objects from hash
       just_users = list.map { |u| u[:user] }
 
-      domain_users = GoodData::Domain.users_create(just_users, ConnectionHelper::DEFAULT_DOMAIN)
+      result = GoodData::Domain.users_create(just_users, ConnectionHelper::DEFAULT_DOMAIN)
+      domain_users = result.reject { |r| r[:type] == :errors }.map {|r| r[:user]}
       expect(domain_users.length).to equal(just_users.length)
 
       domain_users.each_with_index { |user, index | list[index][:user] = user }

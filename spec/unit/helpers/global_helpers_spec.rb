@@ -54,5 +54,31 @@ describe GoodData::Helpers do
       ])
     end
 
+    it "shit" do
+      x = {
+        :companyName=>"GoodData",
+        :created=>"2014-05-22 20:33:08",
+        :firstName=>"Gem",
+        :lastName=>"Tester",
+        :login=>"svarovsky+gem_tester@gooddata.com",
+        :phoneNumber=>"12345",
+        :updated=>"2014-06-24 13:55:28",
+        :email=>"svarovsky+gem_tester@gooddata.com",
+        :authenticationModes=>[],
+        :uri=>"/gdc/account/profile/3cea1102d5584813506352a2a2a00d95"
+      }
+      y = {
+        :email=>"svarovsky+gem_tester@gooddata.com",
+        :login=>"svarovsky+gem_tester@gooddata.com",
+        :firstname=>"Gem",
+        :lastname=>"Tester",
+        :role=>"adminRole",
+        :password=>"jindrisska",
+        :domain=>"gooddata-tomas-svarovsky"
+      }
+      diff = GoodData::Helpers.diff([x], [y], key: :logn)
+      binding.pry
+    end
+
   end
 end

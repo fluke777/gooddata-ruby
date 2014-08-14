@@ -597,35 +597,53 @@ module GoodData
     def users_create(list, role_list = roles)
       domains = {}
       list.map do |user|
-        # TODO: Add user here
-        domain_name = user.json['user']['content']['domain']
+        begin
+          # TODO: Add user here
+          domain_name = user.json['user']['content']['domain']
 
-        # Lookup for domain in cache'
-        domain = domains[domain_name]
+          # Lookup for domain in cache'
+          domain = domains[domain_name]
 
-        # Get domain info from REST, add to cache
-        if domain.nil?
-          domain = {
-            :domain => GoodData::Domain[domain_name],
-            :users => GoodData::Domain[domain_name].users
-          }
+          # Get domain info from REST, add to cache
+          if domain.nil?
+            domain = {
+              :domain => GoodData::Domain[domain_name],
+              :users => GoodData::Domain[domain_name].users
+            }
 
-          domain[:users_map] = Hash[domain[:users].map { |u| [u.login, u] }]
-          domains[domain_name] = domain
+            domain[:users_map] = Hash[domain[:users].map { |u| [u.login, u] }]
+            domains[domain_name] = domain
+          end
+
+          # Check if user exists in domain
+          domain_user = domain[:users_map][user.login]
+          fail ArgumentError, "Trying to add user '#{user.login}' which is not valid user in domain '#{domain_name}'" if domain_user.nil?
+
+          # Lookup for role
+          role_name = user.json['user']['content']['role'] || 'readOnlyUser'
+          role = get_role(role_name, role_list)
+          fail ArgumentError, "Invalid role name specified '#{role_name}' for user '#{user.email}'" if role.nil?
+
+          # Assign user project role
+          set_user_roles(domain_user, [role.uri], role_list)
+          { type: :user_added_to_project, user: domain_user }
+        rescue ArgumentError => e
+          { type: :errors, reason: e}
         end
-
-        # Check if user exists in domain
-        domain_user = domain[:users_map][user.login]
-        fail ArgumentError, "Trying to add user '#{user.login}' which is not valid user in domain '#{domain_name}'" if domain_user.nil?
-
-        # Lookup for role
-        role_name = user.json['user']['content']['role'] || 'readOnlyUser'
-        role = get_role(role_name, role_list)
-        fail ArgumentError, "Invalid role name specified '#{role_name}' for user '#{user.email}'" if role.nil?
-
-        # Assign user project role
-        set_user_roles(domain_user, [role.uri], role_list)
       end
+    end
+
+    def whitelist_users(new_users, whitelist)
+      # whitelist_users
+      unless whitelist
+        return [new_users, users]
+      end
+
+      whitelist_proc = Proc.new do |user|
+        whitelist.any? { |wl| user.login.include?(wl) }
+      end
+
+      [new_users.reject(&whitelist_proc), users.reject(&whitelist_proc)]
     end
 
     # Imports users from CSV
@@ -642,21 +660,19 @@ module GoodData
     # @param opts Optional additional options
     def users_import(new_users, options = {})
       domain = options[:domain]
-      whitelist = options[:whitelists] || []
+      whitelisted_new_users, whitelisted_users = whitelist_users(new_users, options[:whitelists])
 
-      # whitelist_users
-      whitelisted_users = users.reject do |user|
-        whitelist.any? { |wl| user.login.include?(wl) }
-      end
+      new_users_map = Hash[whitelisted_new_users.map { |u| [u.login, u] }]
 
       # Diff users
-      diff = GoodData::Membership.diff_list(whitelisted_users, new_users)
+      diff = GoodData::Membership.diff_list(whitelisted_users, whitelisted_new_users)
+      results = []
 
       # Create domain users
-      GoodData::Domain.users_create(diff[:added], domain)
+      results.concat GoodData::Domain.users_create(diff[:added], domain)
       # Create new users
       role_list = roles
-      users_create(diff[:added], role_list)
+      results.concat users_create(diff[:added], role_list)
 
       # Get changed users objects from hash
       list = diff[:changed].map do |user|
@@ -664,9 +680,7 @@ module GoodData
       end
 
       # Join list of changed users with 'same' users
-      list = list.zip(diff[:same]).flatten.compact
-
-      new_users_map = Hash[new_users.map { |u| [u.login, u] }]
+      list = list.concat(diff[:same]).compact
 
       # Create list with user, desired_roles hashes
       list = list.map do |user|
@@ -677,10 +691,11 @@ module GoodData
       end
 
       # Update existing users
-      set_users_roles(list, role_list)
+      results.concat set_users_roles(list, role_list)
 
       # Remove old users
-      users_remove(diff[:removed])
+      results.concat users_remove(diff[:removed])
+      results
     end
 
     # Disable users
@@ -735,12 +750,17 @@ module GoodData
     # @param role_list Optional list of cached roles to prevent unnecessary server round-trips
     def set_users_roles(list, role_list = roles)
       list.map do |user_hash|
-        user = user_hash[:user]
-        roles = user_hash[:role] || user_hash[:roles]
-        {
-          :user => user,
-          :result => set_user_roles(user, roles, role_list)
-        }
+        begin
+          user = user_hash[:user]
+          roles = user_hash[:role] || user_hash[:roles]
+          {
+            type: :role_set,
+            user: user,
+            result: set_user_roles(user, roles, role_list)
+          }
+        rescue RuntimeError => e
+          { type: :errors, reason: e}
+        end
       end
     end
 
