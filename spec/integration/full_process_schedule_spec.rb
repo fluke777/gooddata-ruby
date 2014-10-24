@@ -7,6 +7,7 @@ describe "Full process and schedule exercise", :constraint => 'slow' do
     @process = @project.deploy_process('./spec/data/ruby_process',
                                   type: 'RUBY',
                                   name: 'Test ETL Process')
+                                  
   end
 
   after(:all) do

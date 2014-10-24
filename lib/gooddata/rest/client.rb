@@ -199,27 +199,17 @@ module GoodData
       end
 
       # FIXME: Invstigate _file argument
-      def get_project_webdav_path(_file, opts = { :project => GoodData.project })
-        p = opts[:project]
-        fail ArgumentError, 'No :project specified' if p.nil?
-
-        project = GoodData::Project[p, opts]
-        fail ArgumentError, 'Wrong :project specified' if project.nil?
-
-        u = URI(project.links['uploads'])
-        URI.join(u.to_s.chomp(u.path.to_s), '/project-uploads/', "#{project.pid}/")
+      def get_project_webdav_path(file, opts = { :project => GoodData.project })
+        GoodData.get_project_webdav_path(file, opts)
       end
 
       # FIXME: Invstigate _file argument
-      def get_user_webdav_path(_file, opts = { :project => GoodData.project })
-        p = opts[:project]
-        fail ArgumentError, 'No :project specified' if p.nil?
+      def get_user_webdav_path(_file, opts = {})
+        GoodData.get_user_webdav_path(_file, opts)
+      end
 
-        project = GoodData::Project[p, opts]
-        fail ArgumentError, 'Wrong :project specified' if project.nil?
-
-        u = URI(project.links['uploads'])
-        URI.join(u.to_s.chomp(u.path.to_s), '/uploads/')
+      def get_user_webdav_url(opts = { client: GoodData.client })
+        GoodData.get_user_webdav_url(opts)
       end
 
       # Generalizaton of poller. Since we have quite a variation of how async proceses are handled
@@ -319,42 +309,19 @@ module GoodData
       end
 
       def download_from_user_webdav(source_relative_path, target_file_path, options = {})
-        download(source_relative_path, target_file_path, options.merge(
-            :directory => options[:directory],
-            :staging_url => get_user_webdav_url(options)
-        ))
+        GoodData.download_from_user_webdav(source_relative_path, target_file_path, options)
       end
 
       def upload_to_user_webdav(file, options = {})
-        upload(file, options.merge(
-          :directory => options[:directory],
-          :staging_url => get_user_webdav_url(options)
-        ))
+        GoodData.upload_to_user_webdav(file, options)
+      end
+
+      def upload_to_project_webdav(file, options = {})
+        GoodData.upload_to_project_webdav(file, options)
       end
 
       def with_project(pid, &block)
         GoodData.with_project(pid, client: self, &block)
-      end
-
-      ###################### PRIVATE ######################
-
-      private
-
-      def get_user_webdav_url(options = {})
-        p = options[:project]
-        fail ArgumentError, 'No :project specified' if p.nil?
-
-        project = options[:project] || GoodData::Project[p, options]
-        fail ArgumentError, 'Wrong :project specified' if project.nil?
-
-        u = URI(project.links['uploads'])
-        us = u.to_s
-        ws = options[:client].opts[:webdav_server]
-        if !us.empty? && !us.downcase.start_with?('http') && !ws.empty?
-          u = URI.join(ws, us)
-        end
-
-        URI.join(u.to_s.chomp(u.path.to_s), '/uploads/')
       end
     end
   end

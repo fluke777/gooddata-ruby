@@ -65,34 +65,39 @@ module GoodData
     end
 
     def upload_to_user_webdav(file, options = {})
-      u = URI(GoodData.project.links['uploads'])
-      url = URI.join(u.to_s.chomp(u.path.to_s), '/uploads/')
       connection.upload(file, options.merge(
         :directory => options[:directory],
-        :staging_url => url
+        :staging_url => get_user_webdav_url
       ))
     end
 
     def get_project_webdav_path(file, options = {})
-      u = URI(GoodData.project.links['uploads'])
-      URI.join(u.to_s.chomp(u.path.to_s), '/project-uploads/', "#{GoodData.project.pid}/")
+      URI.join(get_project_webdav_url(options), file)
+    end
+
+    def get_project_webdav_url(options = {})
+      project = options[:project]
+      fail ArgumentError, 'No :project specified' if project.nil?
+      URI(project.links['uploads'])
     end
 
     def upload_to_project_webdav(file, options = {})
       url = get_project_webdav_path(file, options)
       connection.upload(file, options.merge(
-        :directory => options[:directory],
         :staging_url => url))
     end
 
     def get_user_webdav_path(file, options = {})
-      u = URI(GoodData.project.links['uploads'])
-      URI.join(u.to_s.chomp(u.path.to_s), '/uploads/')
+      URI.join(get_user_webdav_url, file)
+    end
+
+    def get_user_webdav_url(options = {})
+      c = options[:client] || connection
+      URI(GoodData::Links.new(c.get('/gdc'))['uploads'] + '/')
     end
 
     def download_from_user_webdav(file, where, options = {})
-      url = get_user_webdav_path(file, options)
-      connection.download(file, where, options.merge(:staging_url => url))
+      connection.download(file, where, options.merge(staging_url: get_user_webdav_url))
     end
 
     # Generalizaton of poller. Since we have quite a variation of how async proceses are handled

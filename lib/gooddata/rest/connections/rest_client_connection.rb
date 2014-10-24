@@ -80,9 +80,10 @@ module GoodData
         def upload(file, options = {})
           dir = options[:directory] || ''
           staging_uri = options[:staging_url].to_s
-          url = dir.empty? ? staging_uri : URI.join(staging_uri, "#{dir}/").to_s
+          url = dir.empty? ? staging_uri : "#{staging_uri}/#{dir}/"
 
           # Make a directory, if needed
+          
           unless dir.empty?
             method = :get
             GoodData.logger.debug "#{method}: #{url}"
@@ -113,9 +114,10 @@ module GoodData
 
           # Upload the file
           # puts "uploading the file #{URI.join(url, filename).to_s}"
+          u = URI.join(url, filename)
           raw = {
             :method => :put,
-            :url => URI.join(url, filename).to_s,
+            :url => u.to_s,
             :headers => {
               :user_agent => GoodData.gem_version_string
             },
@@ -123,11 +125,16 @@ module GoodData
             :raw_response => true
           }.merge(cookies)
           RestClient::Request.execute(raw)
-          true
+          u
         end
 
         def download(what, where, options = {})
-          url = options[:staging_url].to_s + what
+          what = URI(what)
+          url = if what.relative?
+            options[:staging_url].to_s + '/' + what.to_s
+          else
+            what.to_s
+          end
 
           raw = {
             :headers => {

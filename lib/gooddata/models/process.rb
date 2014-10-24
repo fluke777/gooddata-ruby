@@ -97,7 +97,6 @@ module GoodData
                 end
               end
             end
-
             client.upload_to_user_webdav(temp.path, opts)
             temp.path
           end
@@ -119,7 +118,6 @@ module GoodData
                 end
               end
             end
-
             client.upload_to_user_webdav(temp.path, opts)
             temp.path
           end

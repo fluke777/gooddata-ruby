@@ -55,6 +55,18 @@ describe "Full project implementation", :constraint => 'slow' do
     expect(res).to be_empty
   end
 
+  it "should gracefully handle data lod failure" do
+    blueprint = GoodData::Model::ProjectBlueprint.new(@spec)
+    GoodData.logging_on
+    commits_data = [
+      ["lines_changed","committed_on","dev_id","repo_id"],
+      [1,"01/01/2014",1,1,5]]
+    expect do
+      GoodData::Model.upload_data(commits_data, blueprint, 'commits', :client => @client, :project => @project)
+    end.to raise_error(GoodData::DataMartLoadError)
+    # blueprint.find_dataset('commits').upload(commits_data)
+  end
+
   it "should load the data" do
     GoodData.with_project(@project) do |p|
       blueprint = GoodData::Model::ProjectBlueprint.new(@spec)
