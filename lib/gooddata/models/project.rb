@@ -648,6 +648,71 @@ module GoodData
       data['links']
     end
 
+    def lint
+      errors = []
+
+      # Checks if the project has any eventstores defined
+      result = client.get("/gdc/projects/#{pid}/eventStore/stores")
+      ess = result['collection']['items']
+      ess.each do |es|
+        errors << {
+          type: :using_eventstore,
+          eventstore_name: "names",
+          eventstore_uri: "uri"
+        }
+      end
+
+      # Checks if the project has any reports or dashboards locked
+      (dashboards + reports).any?(&:locked?)
+      ess = result['collection']['items']
+      ess.each do |es|
+        errors << {
+          type: :using_eventstore,
+          eventstore_name: "names",
+          eventstore_uri: "uri",
+          level: :warning,
+          color: :red
+        }
+      end
+
+      # How many of each role a project has
+      u = users.pmapcat {|x| x.roles}
+      user_roles = u.group_by {|x| x.title}.map {|k,v| [k, v.count]}
+      
+      user_roles.each do |role_title, count|
+        errors << {
+          type: :using_eventstore,
+          eventstore_name: "names",
+          eventstore_uri: "uri",
+          level: :info
+        }
+      end
+
+      # Checks if the project uses maps
+      items = dashboards.mapcat {|d| d.tabs.mapcat {|t| t['items'].map {|i| [d,t,i]}}}
+      geos = items.select {|d,t,i| key = i.keys.first; key == 'geoChartItem'}
+      geos.each do |geo|
+        errors << {
+          type: :using_map,
+          tab: geo[1]['identifier'],
+          dashboard: geo[0].title,
+          level: :info
+        }
+      end
+
+      # Checks if it project uses custom text Magic tool
+      magics = items.select {|d,t,i| key = i.keys.first; key == 'iframeItem' && i[key]['url'] =~ /magic\.html/}
+      magics.each do |magic|
+        errors << {
+          type: :using_magic,
+          tab: magic[1]['identifier'],
+          dashboard: magic[0].title,
+          level: :info
+        }
+      end
+      errors
+    end
+
     # Helper for getting labels of a project
     #
     # @param [String | Number | Object] Anything that you can pass to
