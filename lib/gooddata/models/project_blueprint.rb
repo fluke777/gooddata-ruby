@@ -1,4 +1,6 @@
 # encoding: UTF-8
+require 'rgl/adjacency'
+require 'rgl/transitivity'
 
 module GoodData
   module Model
@@ -307,6 +309,19 @@ module GoodData
       # @return [Array<Hash>]
       def attributes_and_anchors
         datasets.mapcat(&:attributes_and_anchors)
+      end
+
+      def to_dag
+        g = RGL::DirectedAdjacencyGraph.new
+        datasets(:dd => true).map(&:name).each {|v| g.add_vertex(v)}
+        datasets(:dd => true).mapcat {|d| d.references.map {|r| [r[:dataset], d.name]}}.each {|f, t| g.add_edge(f,t)}
+        g
+      end
+
+      def cycles
+        g = to_dag
+        r = g.transitive_reduction
+        return [] g.edges.map(&:to_s).count == r.edges.map(&:to_s).count
       end
 
       # Returns list of labels from all the datasets in a blueprint
