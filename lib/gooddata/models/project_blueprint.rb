@@ -321,7 +321,7 @@ module GoodData
       def cycles
         g = to_dag
         r = g.transitive_reduction
-        return [] g.edges.map(&:to_s).count == r.edges.map(&:to_s).count
+        g.edges.map(&:to_s).count == r.edges.map(&:to_s).count
       end
 
       # Returns list of labels from all the datasets in a blueprint

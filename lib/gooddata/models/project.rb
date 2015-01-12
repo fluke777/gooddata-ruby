@@ -710,6 +710,20 @@ module GoodData
           level: :info
         }
       end
+
+      # Check if project has duplicate metrics
+      metrics
+        .group_by {|x| x.expression}
+        .select {|ex, group| group.count > 1}
+        .map {|ex, group| [ex, group.map(&:uri)]}
+        .each do |expr, list|
+          errors << {
+            type: :duplicate_metric,
+            expression: expr,
+            duplicate_metric_uris: list,
+            level: :info
+          }
+        end
       errors
     end
 
