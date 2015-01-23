@@ -256,6 +256,10 @@ module GoodData
       end
     end
 
+    def datasets(id = :all)
+      GoodData::Dataset[id, project: self, client: client]
+    end
+
     def dimensions(id = :all)
       GoodData::Dimension[id, client: client, project: self]
     end
@@ -330,10 +334,6 @@ module GoodData
     # @return [GoodData::Dashboard | Array<GoodData::Dashboard>] dashboard instance or list
     def dashboards(id = :all)
       GoodData::Dashboard[id, project: self, client: client]
-    end
-
-    def datasets
-      blueprint.datasets
     end
 
     def data_permissions

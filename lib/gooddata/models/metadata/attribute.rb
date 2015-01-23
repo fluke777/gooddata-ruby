@@ -44,8 +44,30 @@ module GoodData
     def dimension
       uri = content['dimension']
       return nil if uri.nil?
-
       GoodData::Dimension[uri, client: client, project: project]
+    end
+
+    def is_date_attribute?
+      things = ["week",
+       "euweek.in.year",
+       "day.in.week",
+       "day.in.month",
+       "day.in.quarter",
+       "day.in.euweek",
+       "date",
+       "quarter.in.year",
+       "week.in.year",
+       "day.in.year",
+       "month",
+       "quarter",
+       "month.in.quarter",
+       "week.in.quarter",
+       "year",
+       "euweek",
+       "euweek.in.quarter",
+       "month.in.year"]
+      potential_id = identifier.split('.')[1..-1].join('.')
+      things.include?(potential_id) ? true : false
     end
 
     # Returns the first display form which is the primary one
