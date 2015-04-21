@@ -3,6 +3,10 @@
 require 'pmap'
 require 'gooddata'
 
+log = Logger.new(STDOUT)
+log.level = Logger::WARN
+GoodData.logger = log
+
 describe GoodData::Project, :constraint => 'slow' do
   before(:all) do
     @client = ConnectionHelper::create_default_connection
@@ -71,7 +75,7 @@ describe GoodData::Project, :constraint => 'slow' do
       bill.last_name = 'bill'
       # import
       @domain.create_users(users, domain: @domain, whitelists: [/gem_tester@gooddata.com/])
-      @project.import_users(users, domain: @domain, whitelists: [/gem_tester@gooddata.com/])
+      # @project.import_users(users, domain: @domain, whitelists: [/gem_tester@gooddata.com/])
       # it should be updated
       bill_changed = @domain.get_user(bill)
       expect(bill_changed.first_name).to eql('buffalo')

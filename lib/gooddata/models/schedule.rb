@@ -131,7 +131,6 @@ module GoodData
           hidden_params = GoodData::Helpers.encode_params(json['schedule'][:hiddenParams], true)
           json['schedule'][:hiddenParams] = hidden_params
         end
-
         url = "/gdc/projects/#{project.pid}/schedules"
         res = c.post url, json
 
@@ -148,7 +147,20 @@ module GoodData
     # @return [GoodData::Schedule] New GoodData::Schedule instance
     def initialize(json)
       super
+      GoodData::Helpers.decode_params(json['schedule']['params'] || {})
+      GoodData::Helpers.decode_params(json['schedule']['hiddenParams'] || {})
       @json = json
+    end
+
+    def after
+      schedules.find { |s| s.obj_id == trigger_id }
+    end
+
+    def after=(schedule)
+      fail "After trigger has to be a schedule object" unless schedule.is_a?(Schedule)
+      json['schedule']['triggerScheduleId'] = schedule.obj_id
+      @json['schedule']['cron'] = nil
+      @dirty = true
     end
 
     # Deletes schedule
@@ -260,6 +272,7 @@ module GoodData
     # @param new_cron [String] Cron settings to be set
     def cron=(new_cron)
       @json['schedule']['cron'] = new_cron
+      @json['schedule']['triggerScheduleId'] = nil
       @dirty = true
     end
 
@@ -312,7 +325,9 @@ module GoodData
       if @json # rubocop:disable Style/GuardClause
         url = @json['schedule']['links']['executions']
         res = client.get url
-        res['executions']['items']
+        res['executions']['items'].map do |e|
+          client.create(Execution, e, :project => project)
+        end
       end
     end
 
@@ -326,8 +341,8 @@ module GoodData
     # Assigns execution parameters
     #
     # @param params [String] Params to be set
-    def params=(new_param)
-      @json['schedule']['params'].merge!(new_param)
+    def params=(new_params)
+      @json['schedule']['params'] = new_params
       @dirty = true
     end
 
@@ -342,7 +357,7 @@ module GoodData
     #
     # @param new_hidden_param [String] Hidden parameters to be set
     def hidden_params=(new_hidden_param)
-      @json['schedule']['hiddenParams'] = hidden_params.merge(new_hidden_param)
+      @json['schedule']['hiddenParams'] = new_hidden_param
       @dirty = true
     end
 
@@ -353,21 +368,51 @@ module GoodData
       if @dirty
         update_json = {
           'schedule' => {
+            'name' => @json['schedule']['name'],
             'type' => @json['schedule']['type'],
             'state' => @json['schedule']['state'],
             'timezone' => @json['schedule']['timezone'],
             'cron' => @json['schedule']['cron'],
-            'params' => @json['schedule']['params'],
-            'hiddenParams' => @json['schedule']['hiddenParams'],
-            'reschedule' => @json['schedule']['reschedule'] || 0
-          }
+            'triggerScheduleId' => trigger_id,
+            'params' => GoodData::Helpers.encode_params(params, false),
+            'hiddenParams' => GoodData::Helpers.encode_params(hidden_params, true)
+          }.compact
         }
         res = client.put(uri, update_json)
         @json = res
         @dirty = false
-        return true
       end
-      false
+      self
+    end
+
+    def time_based?
+      cron != nil
+    end
+
+    def to_hash
+      {
+        name: name,
+        type: type,
+        state: state,
+        params: params,
+        hidden_params: hidden_params,
+        cron: cron,
+        trigger_id: trigger_id,
+        timezone: timezone,
+        uri: uri
+      }.compact
+    end
+
+    def trigger_id
+      json['schedule']['triggerScheduleId']
+    end
+
+    def name
+      @json['schedule']['name']
+    end
+
+    def name=(name)
+      @json['schedule']['name'] = name
     end
 
     # Returns URL

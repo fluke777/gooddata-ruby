@@ -13,6 +13,7 @@ module GoodData
           logger = NilLogger.new
         else
           logger = params['GDC_LOGGER'] = params[:GDC_LOGGER_FILE].nil? ? Logger.new(STDOUT) : Logger.new(params[:GDC_LOGGER_FILE])
+          logger.level = Logger::WARN
           logger.info('Pipeline starts')
         end
         returning(@app.call(params)) do |_result|

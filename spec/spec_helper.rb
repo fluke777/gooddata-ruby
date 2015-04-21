@@ -40,7 +40,7 @@ RSpec.configure do |config|
     # end
 
     # TODO: Fully setup global environment
-    GoodData.logging_off
+    # GoodData.logging_off
   end
 
   config.after(:all) do

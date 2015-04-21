@@ -323,6 +323,11 @@ module GoodData
           @dirty = false
         end
       end
+      self
+    end
+
+    def sso_provider
+      @json['accountSetting']['ssoProvider']
     end
 
     # Gets the preferred timezone
@@ -379,7 +384,8 @@ module GoodData
         [:phoneNumber, :phone],
         [:firstName, :first_name],
         [:lastName, :last_name],
-        [:authenticationModes, :authentication_modes]
+        [:authenticationModes, :authentication_modes],
+        [:ssoProvider, :sso_provider]
       ].each do |vals|
         wire, rb = vals
         tmp[rb] = tmp[wire]

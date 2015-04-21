@@ -388,7 +388,7 @@ module GoodData
         [:phoneNumber, :phone_number],
         [:firstname, :first_name],
         [:lastname, :last_name],
-        [:authenticationModes, :authentication_modes]
+        [:authenticationModes, :authentication_modes],
       ].each do |vals|
         wire, rb = vals
         tmp[rb] = tmp[wire]

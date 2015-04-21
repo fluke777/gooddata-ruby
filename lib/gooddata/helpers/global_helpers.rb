@@ -93,8 +93,8 @@ module GoodData
         lookup
       end
 
-      ENCODED_PARAMS_KEY = :gd_encoded_params
-      ENCODED_HIDDEN_PARAMS_KEY = :gd_encoded_hidden_params
+      ENCODED_PARAMS_KEY = 'gd_encoded_params'
+      ENCODED_HIDDEN_PARAMS_KEY = 'gd_encoded_hidden_params'
 
       # Encodes parameters for passing them to GD execution platform.
       # Core types are kept and complex types (arrays, structures, etc) are JSON encoded into key hash "gd_encoded_params" or "gd_encoded_hidden_params", depending on the 'hidden' method param.

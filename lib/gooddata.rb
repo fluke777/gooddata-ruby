@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 require 'pmap'
-$pmap_default_thread_count = 100 # rubocop:disable GlobalVars
+$pmap_default_thread_count = 50 # rubocop:disable GlobalVars
 
 # GoodData Module
 module GoodData
