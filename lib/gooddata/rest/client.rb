@@ -84,7 +84,12 @@ module GoodData
           if username.is_a?(Hash) && username.key?(:server)
             new_opts[:server] = username[:server]
           end
-          client = Client.new(new_opts)
+          begin
+            client = Client.new(new_opts)
+          rescue RestClient::Unauthorized => e
+            puts "Authentication failed. Either your login or password is incorrect."
+            raise e
+          end
 
           if client
             at_exit do

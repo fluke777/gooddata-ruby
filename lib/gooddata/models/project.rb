@@ -78,7 +78,13 @@ module GoodData
           c = client(opts)
           fail ArgumentError, 'No :client specified' if c.nil?
 
-          response = c.get(PROJECT_PATH % id)
+          begin
+            response = c.get(PROJECT_PATH % id)
+          rescue RestClient::ResourceNotFound
+            raise ProjectNotFound.new(id)
+          rescue RestClient::Forbidden
+            raise UnableToAccessProject.new(id)
+          end
           c.factory.create(Project, response)
         end
       end

@@ -59,7 +59,7 @@ module GoodData
         res = bl.call(GoodData.project)
       rescue RestClient::ResourceNotFound
         GoodData.project = old_project
-        raise(GoodData::ProjectNotFound, 'Project was not found')
+        raise(GoodData::ProjectNotFound.new(project))
       end
 
       GoodData.project = old_project
