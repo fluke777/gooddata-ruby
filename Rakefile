@@ -3,6 +3,7 @@
 require 'rubygems'
 
 require 'bundler/setup'
+require 'bundler/cli'
 require 'bundler/gem_tasks'
 
 # require 'coveralls/rake/task'
@@ -113,12 +114,24 @@ namespace :test do
   task :all => [:unit, :integration, :cop]
 end
 
+namespace :licenses do
+  task :info do
+    Bundler::CLI.start(['exec', 'license_finder'])
+  end
+
+  task :report do
+    `bundle exec license_finder report --format=markdown > dependencies.md`
+  end
+end
+
+
 desc "Run all tests"
 task :test => 'test:all'
 
 task :usage do
   puts "No rake task specified, use rake -T to list them"
 end
+
 
 YARD::Rake::YardocTask.new
 

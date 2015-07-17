@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'webmock', '~> 1.21', '>= 1.21.0'
   s.add_development_dependency 'debase', '~> 0.1', '>= 0.1.7' if !ENV['TRAVIS_BUILD'] && RUBY_VERSION >= '2.0.0'
   s.add_development_dependency 'ruby-debug-ide', '~> 0.4' if !ENV['TRAVIS_BUILD'] && RUBY_VERSION >= '2.0.0'
+  s.add_development_dependency 'license_finder'
 
   s.add_dependency 'activesupport', '~> 4.1', '>= 4.1.0'
   s.add_dependency 'bundler', '~> 1.7', '>= 1.7.3'
