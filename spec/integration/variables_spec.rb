@@ -143,13 +143,8 @@ describe "Variables implementation", :constraint => 'slow' do
     metric = GoodData::Fact.find_first_by_title('Lines Changed', client: @client, project: @project).create_metric
     filters = [[ConnectionHelper::DEFAULT_USERNAME, @label.uri, "NONEXISTENT1", "NONEXISTENT2", "NONEXISTENT3"]]
     @project.add_variable_permissions(filters, @variable, ignore_missing_values: true)
-    # expect(metric.execute).to eq 9
-    expect(@variable.user_values.map {|f| [f.related.login, f.pretty_expression] })
-      .to eq [[ConnectionHelper::DEFAULT_USERNAME, "TRUE"]]
-
-    @project.add_variable_permissions(filters, @variable, ignore_missing_values: true, restrict_if_missing_all_values: true)
-    # expect(metric.execute).to eq nil
-    expect(@variable.user_values.count).to eq 0
+    expect(metric.execute).to eq 9
+    expect(@variable.user_values).to eq []
   end
 
   it "you can switch the updates. Whatever is not mentioned will not be touched" do

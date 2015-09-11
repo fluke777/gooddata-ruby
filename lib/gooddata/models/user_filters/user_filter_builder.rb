@@ -66,15 +66,16 @@ module GoodData
       results = options[:labels].mapcat do |label|
         column = label[:column] || Range.new(1, -1)
         values = column.is_a?(Range) ? line.slice(column) : [line[column]]
-        [create_filter(label, values.compact)]
+        [create_filter(label, values.compact, options)]
       end
       [login, results]
     end
 
-    def self.create_filter(label, values)
+    def self.create_filter(label, values, options = {})
+      false_value = options[:false_value] || '__FALSE__'
       {
         :label => label[:label],
-        :values => values,
+        :values => values.include?(false_value) ? [] : values,
         :over => label[:over],
         :to => label[:to]
       }
@@ -86,14 +87,14 @@ module GoodData
     # @param options [Hash]
     # @return [Array]
     def self.reduce_results(data)
-      data.map { |k, v| { login: k, filters: UserFilterBuilder.collect_labels(v) } }
+      data.map { |k, v| { login: k, filters: UserFilterBuilder.collect_labels(v) } }.reject { |x| x[:filters].empty? }
     end
 
     # Groups the values by particular label. And passes each group to deduplication
     # @param options [Hash]
     # @return
     def self.collect_labels(data)
-      data.group_by { |x| [x[:label], x[:over], x[:to]] }.map { |l, v| { label: l[0], over: l[1], to: l[2], values: UserFilterBuilder.collect_values(v) } }
+      data.group_by { |x| [x[:label], x[:over], x[:to]] }.map { |l, v| { label: l[0], over: l[1], to: l[2], values: UserFilterBuilder.collect_values(v) } }.reject { |x| x[:values].empty? }
     end
 
     # Collects specific values and deduplicates if necessary
@@ -215,9 +216,9 @@ module GoodData
           nil
         end
       end
-      expression = if element_uris.compact.empty? && options[:restrict_if_missing_all_values] && options[:type] == :muf
+      expression = if element_uris.compact.empty? && options[:type] == :muf
                      '1 <> 1'
-                   elsif element_uris.compact.empty? && options[:restrict_if_missing_all_values] && options[:type] == :variable
+                   elsif element_uris.compact.empty? && options[:type] == :variable
                      nil
                    elsif element_uris.compact.empty?
                      'TRUE'
@@ -340,7 +341,6 @@ module GoodData
       dry_run = options[:dry_run]
       to_create, to_delete = execute(filters, var.user_values, VariableUserFilter, options.merge(type: :variable))
       return [to_create, to_delete] if dry_run
-
       # TODO: get values that are about to be deleted and created and update them.
       # This will make sure there is no downitme in filter existence
       unless options[:do_not_touch_filters_that_are_not_mentioned]
@@ -495,6 +495,16 @@ module GoodData
       filters.map do |filter|
         if filter.is_a?(Hash)
           filter
+        elsif filter[2].is_a?(Array)
+          {
+            :login => filter.first,
+            :filters => [
+              {
+                :label => filter[1],
+                :values => []
+              }
+            ]
+          }
         else
           {
             :login => filter.first,

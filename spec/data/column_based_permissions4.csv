@@ -5,5 +5,5 @@ john.doe@example.com,Czech Republic,
 john.doe@example.com,Uganda,""
 john.doe@example.com,Slovakia,
 jane.doe@example.com,Chile,marketing
-jim@example.com,"Czech republic",
-jim@example.com,"Japan",
+jim@example.com,,__FALSE__
+jim@example.com,,

@@ -7,13 +7,13 @@
 require 'gooddata'
 
 def check_filters(filters)
-  filters.count.should == 2
+  filters.count.should == 3
   filter = filters.first
   filter[:login].should == "john.doe@example.com"
   filter[:filters].count.should == 1
   filter[:filters].first[:values].count.should == 4
   filter[:filters].first[:values].should == ["USA", "Czech Republic", "Uganda", "Slovakia"]
-  filter = filters.last
+  filter = filters[1]
   filter[:login].should == "jane.doe@example.com"
   filter[:filters].count.should == 1
   filter[:filters].first[:values].count.should == 1
@@ -37,6 +37,31 @@ describe 'User filters implementation' do
         ]
       });
     check_filters(filters)
+  end
+
+  it "should create user filters while treating nil like nonexistent values." do
+    filters = GoodData::UserFilterBuilder::get_filters('./spec/data/column_based_permissions.csv', {
+        :labels => [
+          {:label => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2719", :column => 'region'},
+          {:label => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2720", :column => 'department'}
+        ]
+      });
+    expect(filters.find {|x| x[:login] == 'jim@example.com'}[:filters]).to eq ([{
+      :label => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2719",
+      :over => nil,
+      :to => nil,
+      :values => ["Czech republic", "Japan"]
+    }])
+  end
+
+  it "should create omit users if there are not any values for them." do
+    filters = GoodData::UserFilterBuilder::get_filters('./spec/data/column_based_permissions3.csv', {
+        :labels => [
+          {:label => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2719", :column => 'region'},
+          {:label => "/gdc/md/lu292gm1077gtv7i383hjl149sva7o1e/obj/2720", :column => 'department'}
+        ]
+      });
+    expect(filters.find {|x| x[:login] == 'jim@example.com'}).to be_nil
   end
 
   it "should treat empty like nil, empty value has to be enclosed in quotes" do
@@ -69,6 +94,20 @@ describe 'User filters implementation' do
       ]
     });
     filters.first[:filters].last[:values].count.should == 2
+  end
+
+  it "should be able to process false values" do
+    setup = {
+      :user_column => 'login',
+      :labels => [
+        {:label => 'some_label', :column => 'region'},
+        {:label => 'other_label', :column => 'department'}
+      ]
+    }
+    filters = GoodData::UserFilterBuilder::get_filters('./spec/data/column_based_permissions4.csv', setup);
+    expect(filters.count).to eq 2
+    filters = GoodData::UserFilterBuilder::get_filters('./spec/data/column_based_permissions4.csv', setup.merge(false_value: 'FALSE'));
+    expect(filters.count).to eq 3
   end
 
   it "should normalize simplified filters" do

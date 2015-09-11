@@ -8,6 +8,7 @@ require 'gooddata'
 
 describe "User filters implementation", :constraint => 'slow' do
   before(:all) do
+    GoodData.logging_http_on
     @spec = JSON.parse(File.read("./spec/data/blueprints/test_project_model_spec.json"), :symbolize_names => true)
     @client = ConnectionHelper::create_default_connection
     blueprint = GoodData::Model::ProjectBlueprint.new(@spec)
@@ -79,6 +80,16 @@ describe "User filters implementation", :constraint => 'slow' do
     ]
     @project.add_data_permissions(filters)
     expect(@project.data_permissions.count).to eq 1
+  end
+
+  it "should pass and set user to see nothing if provided with empty array" do
+    filters = [
+      [ConnectionHelper::DEFAULT_USERNAME, @label.uri, []]
+    ]
+    @project.add_data_permissions(filters)
+    perms = @project.data_permissions
+    expect(perms.map(&:expression)).to eq ["1 <> 1"]
+    expect(perms.count).to eq 1
   end
 
   it "should pass and set only users that are in the projects if asked" do
@@ -181,8 +192,6 @@ describe "User filters implementation", :constraint => 'slow' do
 
     filters = [[ConnectionHelper::DEFAULT_USERNAME, @label.uri, "NONEXISTENT1", "NONEXISTENT2", "NONEXISTENT3"]]
     @project.add_data_permissions(filters, ignore_missing_values: true)
-    expect(metric.execute).to eq 15
-    @project.add_data_permissions(filters, ignore_missing_values: true, restrict_if_missing_all_values: true)
     expect(metric.execute).to eq nil
   end
 
