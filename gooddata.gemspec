@@ -44,7 +44,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'yard-rspec', '~> 0.1'
   s.add_development_dependency 'ZenTest', '~> 4.10', '>= 4.11.0'
 
-  s.add_dependency 'aws-sdk', '~> 1.45'
   s.add_dependency 'docile', '~> 1.1', '>= 1.1.5'
   s.add_dependency 'erubis', '~> 2.7', '>= 2.7.0'
   s.add_dependency 'gli', '~> 2.13', '>= 2.13.2'
@@ -54,10 +53,9 @@ Gem::Specification.new do |s|
   s.add_dependency 'parseconfig', '~> 1.0', '>= 1.0.6'
   s.add_dependency 'pmap', '~> 1.0', '>= 1.0.2'
   s.add_dependency 'pry', '~> 0.10', '>= 0.10.3'
-  s.add_dependency 'restforce', '~> 2.1', '>= 2.1.1'
   s.add_dependency 'rest-client', '~> 1.8', '>= 1.8.0'
   s.add_dependency 'rubyzip', '~> 1.1', '>= 1.1.7'
-  s.add_dependency 'salesforce_bulk_query', '~> 0.2', '>= 0.2.0'
   s.add_dependency 'terminal-table', '~> 1.5', '>= 1.5.2'
   s.add_dependency 'thread_safe'
+  s.add_dependency 'hashie'
 end
